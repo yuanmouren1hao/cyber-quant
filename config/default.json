@@ -1,0 +1,62 @@
+{
+  "system": {
+    "name": "多市场量化交易系统",
+    "version": "1.0.0",
+    "logLevel": "info",
+    "dataDir": "./data"
+  },
+  "server": {
+    "port": 3000,
+    "websocket": {
+      "enabled": true,
+      "port": 3001
+    }
+  },
+  "database": {
+    "type": "sqlite",
+    "path": "./data/database.sqlite"
+  },
+  "exchanges": {
+    "okex": {
+      "enabled": true,
+      "apiUrl": "https://www.okex.com",
+      "wsUrl": "wss://ws.okex.com:8443/ws/v5/public"
+    },
+    "binance": {
+      "enabled": false,
+      "apiUrl": "https://api.binance.com",
+      "wsUrl": "wss://stream.binance.com:9443/ws"
+    }
+  },
+  "trading": {
+    "defaultMarket": "okex",
+    "defaultSymbol": "BTC-USDT",
+    "defaultTimeframe": "1h",
+    "backtest": {
+      "initialCapital": 10000,
+      "commission": 0.002
+    }
+  },
+  "risk": {
+    "maxDrawdown": 0.1,
+    "maxPosition": 0.3,
+    "maxDailyLoss": 0.05,
+    "stopLoss": 0.05,
+    "takeProfit": 0.1
+  },
+  "notification": {
+    "email": {
+      "enabled": true
+    },
+    "sms": {
+      "enabled": false
+    }
+  },
+  "strategies": {
+    "movingAverage": {
+      "enabled": true,
+      "shortPeriod": 5,
+      "longPeriod": 20
+    }
+  }
+}

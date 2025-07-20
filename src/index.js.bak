@@ -1,0 +1,142 @@
+/**
+ * 多市场量化交易系统 - 主入口文件
+ * 
+ * 这是系统的启动入口，负责初始化和启动整个交易系统
+ */
+
+const { getSystem } = require('./core');
+const { dataManager } = require('./data');
+const { getConfig, validateConfig } = require('./config');
+const logger = require('./utils/logger');
+
+/**
+ * 主应用类
+ */
+class TradingApp {
+  constructor() {
+    this.system = null;
+    this.config = getConfig();
+    this.isRunning = false;
+  }
+
+  /**
+   * 初始化应用
+   */
+  async initialize() {
+    try {
+      logger.info('正在初始化多市场量化交易系统...');
+
+      // 验证配置
+      const configValid = validateConfig();
+      if (!configValid) {
+        logger.warn('配置验证失败，某些功能可能无法正常使用');
+      }
+
+      // 创建交易系统实例
+      this.system = getSystem(this.config);
+
+      // 初始化数据管理器
+      await dataManager.initialize();
+
+      // 注册数据提供者到系统
+      const providers = dataManager.getAllProviders();
+      for (const [name, provider] of providers.entries()) {
+        this.system.registerDataProvider(name, provider);
+      }
+
+      logger.info('系统初始化完成');
+    } catch (error) {
+      logger.error('系统初始化失败:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * 启动应用
+   */
+  async start() {
+    if (this.isRunning) {
+      logger.warn('系统已在运行中');
+      return;
+    }
+
+    try {
+      if (!this.system) {
+        await this.initialize();
+      }
+
+      // 启动交易系统
+      await this.system.start();
+
+      this.isRunning = true;
+      logger.info('多市场量化交易系统启动成功');
+
+      // 设置优雅关闭
+      this.setupGracefulShutdown();
+
+    } catch (error) {
+      logger.error('系统启动失败:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * 停止应用
+   */
+  async stop() {
+    if (!this.isRunning) {
+      return;
+    }
+
+    try {
+      logger.info('正在停止系统...');
+
+      if (this.system) {
+        await this.system.stop();
+      }
+
+      this.isRunning = false;
+      logger.info('系统已停止');
+    } catch (error) {
+      logger.error('系统停止失败:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * 设置优雅关闭
+   */
+  setupGracefulShutdown() {
+    const shutdown = async (signal) => {
+      logger.info(`接收到 ${signal} 信号，正在优雅关闭系统...`);
+      
+      try {
+        await this.stop();
+        process.exit(0);
+      } catch (error) {
+        logger.error('优雅关闭失败:', error);
+        process.exit(1);
+      }
+    };
+
+    process.on('SIGTERM', () => shutdown('SIGTERM'));
+    process.on('SIGINT', () => shutdown('SIGINT'));
+    process.on('SIGUSR2', () => shutdown('SIGUSR2')); // nodemon重启信号
+  }
+}
+
+// 创建应用实例
+const app = new TradingApp();
+
+// 如果直接运行此文件，则启动应用
+if (require.main === module) {
+  app.start().catch(error => {
+    logger.error('应用启动失败:', error);
+    process.exit(1);
+  });
+}
+
+module.exports = {
+  TradingApp,
+  app
+};
